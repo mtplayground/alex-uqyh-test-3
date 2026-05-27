@@ -23,9 +23,11 @@ format preference and a client-side current-weather panel.
   unavailable, or the user wants to override location.
 - Persists the selected city and caches the last matching weather response in
   `localStorage`.
-- Provides a `useBackgroundImage` hook that stores a selected background image
-  blob in IndexedDB, exposes an object URL for rendering, and supports clearing
-  the saved image with graceful unavailable/error states.
+- Lets the user choose a custom page background image with a compact background
+  control and reset it back to the default.
+- Persists the selected background image blob in IndexedDB, applies it to the
+  page layout through an object URL, and keeps the clock/weather content readable
+  with a semi-transparent overlay.
 
 There is no backend, routing, authentication, database, or API key. Weather and
 city search use public Open-Meteo browser APIs.
@@ -34,7 +36,7 @@ city search use public Open-Meteo browser APIs.
 
 - `src/main.tsx` mounts the React app into `#root`.
 - `src/App.tsx` composes the clock page by wiring hooks to presentational
-  components.
+  components, including the custom background image state and page overlay.
 - `src/hooks/useCurrentTime.ts` owns the one-second timer and interval cleanup.
 - `src/hooks/useFormatPref.ts` owns the `12h`/`24h` preference, validation, and
   `localStorage` persistence.
@@ -47,6 +49,8 @@ city search use public Open-Meteo browser APIs.
   blob in IndexedDB and manages object URL cleanup.
 - `src/components/ClockDisplay.tsx` renders formatted time and date.
 - `src/components/FormatToggle.tsx` renders the controlled format switch.
+- `src/components/BackgroundUpload.tsx` renders the compact image picker and
+  reset control for the custom background.
 - `src/components/WeatherCard.tsx` renders weather data, loading, and fallback
   states.
 - `src/components/CitySearch.tsx` resolves manual city searches through
@@ -71,7 +75,8 @@ city search use public Open-Meteo browser APIs.
 - Linting/formatting: ESLint flat config and Prettier.
 - Unit tests: Vitest + React Testing Library under `src/**/*.test.ts(x)`.
   Weather tests mock `fetch`, `navigator.geolocation`, and `localStorage`;
-  background-image tests mock IndexedDB and object URL behavior.
+  background-image tests mock IndexedDB, object URL behavior, file selection,
+  and reset actions.
 - End-to-end tests: Playwright under `tests/e2e/`.
 - Commands:
   - `npm run dev` starts the Vite development server.
