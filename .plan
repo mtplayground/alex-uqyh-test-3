@@ -3,50 +3,77 @@
 ## Project Shape
 
 This repository is a Vite + React + TypeScript static frontend. The current app
-is a client-only clock UI with reusable hooks and colocated tests:
+is a client-only clock UI with reusable hooks and colocated tests. The weather
+batch should extend the existing shallow structure:
 
 - `src/main.tsx`: React entry point and global stylesheet import.
-- `src/App.tsx`: Top-level page composition.
-- `src/components/`: Presentational UI with colocated component tests.
-- `src/hooks/`: Browser/client hooks with colocated hook tests.
-- `src/index.css`: Tailwind directives and global base styles.
-- `tests/e2e/`: Playwright smoke tests.
-
-Issue #25 should fit the existing hook pattern by adding a dedicated
-`src/hooks/useGeolocation.ts` file and colocated tests in
-`src/hooks/useGeolocation.test.ts`.
+- `src/App.tsx`: Top-level page composition for clock plus weather.
+- `src/components/ClockDisplay.tsx`: Existing clock display.
+- `src/components/FormatToggle.tsx`: Existing time-format switch.
+- `src/components/CitySearch.tsx`: New manual city search/geocoding input.
+- `src/components/WeatherCard.tsx`: New weather display and fallback surface.
+- `src/hooks/useCurrentTime.ts`: Existing one-second clock state.
+- `src/hooks/useFormatPref.ts`: Existing persisted time-format preference.
+- `src/hooks/useGeolocation.ts`: Existing browser geolocation hook.
+- `src/hooks/useWeather.ts`: New Open-Meteo current-weather fetch/caching hook.
+- `src/types/weather.ts`: Shared weather, city, coordinates, and condition
+  types if those shapes are needed by more than one hook/component.
+- Colocated `*.test.ts(x)` files for hooks and components, with broader
+  integration tests once the weather flow is assembled.
+- `tests/e2e/`: Existing Playwright smoke coverage can be extended later if
+  needed.
 
 ## Shared Types
 
-Define narrow exported types in the hook file unless another module needs a
-shared type barrel:
+Prefer narrow TypeScript types shared only where they cross module boundaries:
 
-- `GeolocationCoordinates`: `{ latitude: number; longitude: number }`
-- `GeolocationErrorCode`: a string union for expected failure states such as
-  unsupported browser, permission denied, unavailable position, and timeout.
-- `GeolocationState`: coordinates, loading flag, and error state.
+- `Coordinates`: `{ latitude: number; longitude: number }`.
+- `WeatherCondition`: stable code/text/icon metadata derived from Open-Meteo
+  weather codes.
+- `WeatherData`: temperature, feels-like temperature, weather code, condition,
+  coordinates, and fetched timestamp.
+- `WeatherState`: data, loading flag, and structured error.
+- `CitySearchResult`: city name, optional admin/country labels, latitude, and
+  longitude.
 
-Keep the public hook return value stable and explicit so future UI work can use
-it for either automatic location or manual city fallback.
+Use Celsius by default because Open-Meteo returns metric units by default and no
+issue asks for unit switching.
 
 ## Issue Dependencies
 
-- Issue #25: Implement `useGeolocation` hook.
-  - No other open implementation issues are part of this batch.
-  - The hook is independent of the current clock UI and should not require
-    routing, backend state, or database support.
-  - Future UI work can consume the hook to prefill weather/location flows and
-    fall back to manual city input on errors.
+- #27 `useWeather` hook:
+  - Depends only on existing React/Vite infrastructure.
+  - Fetches `https://api.open-meteo.com/v1/forecast` with latitude/longitude,
+    current temperature, apparent temperature, and weather code.
+  - Caches the last successful result in `localStorage`.
+- #28 city search with geocoding:
+  - Independent of #27, but should reuse the same `Coordinates`/city types.
+  - Calls Open-Meteo geocoding and persists the selected city in `localStorage`.
+- #29 `WeatherCard` component:
+  - Depends on #27, #28, and existing #25 `useGeolocation`.
+  - Presents weather data, loading skeleton, errors, and manual-city fallback.
+- #30 integrate weather card into `App.tsx`:
+  - Depends on #29 and the assembled hook/component flow.
+  - Places the card below the clock while keeping the centered layout.
+- #31 unit and integration tests:
+  - Depends on all weather hooks/components.
+  - Should cover mocked weather fetches, geocoding, cache behavior,
+    geolocation granted/denied paths, and weather card states.
 
 ## Key Design Decisions
 
-- Use the browser `navigator.geolocation.getCurrentPosition` API from an effect.
-- Guard for non-browser/test environments and browsers without geolocation.
-- Return a structured error state instead of throwing so UI callers can present
-  manual-entry fallback.
-- Handle permission denied and timeout explicitly; map other geolocation errors
-  to a generic unavailable state.
-- Avoid persistent storage. Coordinates are transient client state only.
-- Clean up safely on unmount so late geolocation callbacks do not update state.
-- Test by mocking `navigator.geolocation` in Vitest/jsdom and covering success,
-  permission denied, timeout, unsupported browser, and unmount behavior.
+- Keep the feature fully client-side: no backend, database, secrets, or API keys.
+- Use Open-Meteo public endpoints directly from browser code.
+- Store only small user-facing cache/preference values in `localStorage`: last
+  weather response and selected city. Treat cache reads as best-effort and
+  validate parsed data before use.
+- Use structured errors instead of throwing from hooks so UI can fall back to
+  city search when geolocation or API calls fail.
+- Abort or ignore stale fetches on unmount and coordinate/city changes.
+- Map Open-Meteo weather codes through a local helper/table so UI components do
+  not know API-specific code meanings.
+- Keep `WeatherCard` presentational where possible: receive weather state and
+  fallback controls through props, while `App.tsx` owns the geolocation,
+  selected-city, and weather-fetch wiring during integration.
+- Keep styling consistent with the clock UI: Tailwind, restrained surfaces,
+  light/dark variants, and stable dimensions for loading/error/data states.
