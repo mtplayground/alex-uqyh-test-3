@@ -4,8 +4,7 @@
 
 `alex-uqyh-test-3` is a private Vite + React + TypeScript single-page clock
 application. It renders a live local clock with a persisted 12-hour/24-hour
-format preference and includes reusable browser hooks for future client-side
-location flows.
+format preference and a client-side current-weather panel.
 
 ## Current Behavior
 
@@ -17,8 +16,16 @@ location flows.
 - Defaults to `24h` when no valid saved preference exists.
 - Provides a `useGeolocation` hook that requests browser latitude/longitude and
   returns structured loading/error state for manual-location fallback.
+- Shows a weather card below the clock when coordinates are available.
+- Fetches current weather from Open-Meteo, including temperature, condition, and
+  feels-like temperature.
+- Falls back to manual city search when browser geolocation is denied,
+  unavailable, or the user wants to override location.
+- Persists the selected city and caches the last matching weather response in
+  `localStorage`.
 
-There is no backend, routing, authentication, or remote data dependency.
+There is no backend, routing, authentication, database, or API key. Weather and
+city search use public Open-Meteo browser APIs.
 
 ## Architecture
 
@@ -31,8 +38,16 @@ There is no backend, routing, authentication, or remote data dependency.
 - `src/hooks/useGeolocation.ts` wraps `navigator.geolocation`, maps permission
   and timeout failures to explicit error codes, and avoids late state updates
   after unmount.
+- `src/hooks/useWeather.ts` fetches Open-Meteo current conditions, maps weather
+  codes to labels, and caches the last matching result.
 - `src/components/ClockDisplay.tsx` renders formatted time and date.
 - `src/components/FormatToggle.tsx` renders the controlled format switch.
+- `src/components/WeatherCard.tsx` renders weather data, loading, and fallback
+  states.
+- `src/components/CitySearch.tsx` resolves manual city searches through
+  Open-Meteo geocoding.
+- `src/components/citySearchStorage.ts` validates and persists selected city
+  data.
 - `src/index.css` contains Tailwind directives plus minimal global base styles.
 - `vite.config.ts` configures Vite React and dev/preview servers on
   `0.0.0.0:8080`.
@@ -50,6 +65,7 @@ There is no backend, routing, authentication, or remote data dependency.
 - Styling: Tailwind CSS via PostCSS and Autoprefixer.
 - Linting/formatting: ESLint flat config and Prettier.
 - Unit tests: Vitest + React Testing Library under `src/**/*.test.ts(x)`.
+  Weather tests mock `fetch`, `navigator.geolocation`, and `localStorage`.
 - End-to-end tests: Playwright under `tests/e2e/`.
 - Commands:
   - `npm run dev` starts the Vite development server.
