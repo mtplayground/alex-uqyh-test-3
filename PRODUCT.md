@@ -32,6 +32,8 @@ There is no backend, routing, authentication, or remote data dependency.
   `0.0.0.0:8080`.
 - `playwright.config.ts` runs the end-to-end smoke test against the Vite dev
   server.
+- Production builds are static Vite artifacts written to `dist/`, with
+  `dist/index.html` and hashed assets under `dist/assets/`.
 
 ## Tooling and Conventions
 
@@ -51,7 +53,8 @@ There is no backend, routing, authentication, or remote data dependency.
   - `npm run format` formats the project with Prettier.
   - `npm test` runs the unit test suite.
   - `npm run test:e2e` runs the Playwright smoke test.
-  - `npm run preview` serves the production build preview.
+  - `npm run preview -- --host 0.0.0.0 --port 8080` serves the built `dist/`
+    directory for local static verification.
 
 ## Scope Boundary
 
