@@ -2,78 +2,54 @@
 
 ## Project Shape
 
-This repository is a Vite + React + TypeScript static frontend. The current app
-is a client-only clock UI with reusable hooks and colocated tests. The weather
-batch should extend the existing shallow structure:
+This repository is a Vite + React + TypeScript static frontend. The app already
+uses colocated hooks/tests and browser-only client state. Issue #37 should fit
+that structure without adding backend services:
 
 - `src/main.tsx`: React entry point and global stylesheet import.
-- `src/App.tsx`: Top-level page composition for clock plus weather.
-- `src/components/ClockDisplay.tsx`: Existing clock display.
-- `src/components/FormatToggle.tsx`: Existing time-format switch.
-- `src/components/CitySearch.tsx`: New manual city search/geocoding input.
-- `src/components/WeatherCard.tsx`: New weather display and fallback surface.
-- `src/hooks/useCurrentTime.ts`: Existing one-second clock state.
-- `src/hooks/useFormatPref.ts`: Existing persisted time-format preference.
-- `src/hooks/useGeolocation.ts`: Existing browser geolocation hook.
-- `src/hooks/useWeather.ts`: New Open-Meteo current-weather fetch/caching hook.
-- `src/types/weather.ts`: Shared weather, city, coordinates, and condition
-  types if those shapes are needed by more than one hook/component.
-- Colocated `*.test.ts(x)` files for hooks and components, with broader
-  integration tests once the weather flow is assembled.
-- `tests/e2e/`: Existing Playwright smoke coverage can be extended later if
-  needed.
+- `src/App.tsx`: Current clock/weather page composition.
+- `src/components/`: Presentational UI and colocated component tests.
+- `src/hooks/`: Reusable browser hooks and colocated hook tests.
+- `src/hooks/useBackgroundImage.ts`: New hook for persisted background image
+  blob state.
+- `src/hooks/useBackgroundImage.test.ts`: Focused jsdom/Vitest tests with
+  mocked IndexedDB and object URL behavior.
 
 ## Shared Types
 
-Prefer narrow TypeScript types shared only where they cross module boundaries:
+Keep types local to the hook unless another consumer needs them:
 
-- `Coordinates`: `{ latitude: number; longitude: number }`.
-- `WeatherCondition`: stable code/text/icon metadata derived from Open-Meteo
-  weather codes.
-- `WeatherData`: temperature, feels-like temperature, weather code, condition,
-  coordinates, and fetched timestamp.
-- `WeatherState`: data, loading flag, and structured error.
-- `CitySearchResult`: city name, optional admin/country labels, latitude, and
-  longitude.
+- `BackgroundImageState`: `backgroundUrl`, `isLoading`, and structured `error`.
+- `BackgroundImageErrorCode`: expected states such as unsupported IndexedDB,
+  read failure, write failure, clear failure, and invalid file.
+- `UseBackgroundImageResult`: state plus `setImage(file: File)` and
+  `clearImage()` functions.
 
-Use Celsius by default because Open-Meteo returns metric units by default and no
-issue asks for unit switching.
+The persisted value is a single image `Blob` in IndexedDB. No network database
+or server persistence is needed.
 
 ## Issue Dependencies
 
-- #27 `useWeather` hook:
-  - Depends only on existing React/Vite infrastructure.
-  - Fetches `https://api.open-meteo.com/v1/forecast` with latitude/longitude,
-    current temperature, apparent temperature, and weather code.
-  - Caches the last successful result in `localStorage`.
-- #28 city search with geocoding:
-  - Independent of #27, but should reuse the same `Coordinates`/city types.
-  - Calls Open-Meteo geocoding and persists the selected city in `localStorage`.
-- #29 `WeatherCard` component:
-  - Depends on #27, #28, and existing #25 `useGeolocation`.
-  - Presents weather data, loading skeleton, errors, and manual-city fallback.
-- #30 integrate weather card into `App.tsx`:
-  - Depends on #29 and the assembled hook/component flow.
-  - Places the card below the clock while keeping the centered layout.
-- #31 unit and integration tests:
-  - Depends on all weather hooks/components.
-  - Should cover mocked weather fetches, geocoding, cache behavior,
-    geolocation granted/denied paths, and weather card states.
+- #37 `useBackgroundImage` hook:
+  - Independent of the existing clock/weather UI.
+  - May later be consumed by UI that lets users customize the app background.
+  - Should not modify `App.tsx` or add visual controls unless a later issue
+    asks for that integration.
 
 ## Key Design Decisions
 
-- Keep the feature fully client-side: no backend, database, secrets, or API keys.
-- Use Open-Meteo public endpoints directly from browser code.
-- Store only small user-facing cache/preference values in `localStorage`: last
-  weather response and selected city. Treat cache reads as best-effort and
-  validate parsed data before use.
-- Use structured errors instead of throwing from hooks so UI can fall back to
-  city search when geolocation or API calls fail.
-- Abort or ignore stale fetches on unmount and coordinate/city changes.
-- Map Open-Meteo weather codes through a local helper/table so UI components do
-  not know API-specific code meanings.
-- Keep `WeatherCard` presentational where possible: receive weather state and
-  fallback controls through props, while `App.tsx` owns the geolocation,
-  selected-city, and weather-fetch wiring during integration.
-- Keep styling consistent with the clock UI: Tailwind, restrained surfaces,
-  light/dark variants, and stable dimensions for loading/error/data states.
+- Use IndexedDB directly through the browser `indexedDB` API; do not add a
+  dependency for one object store.
+- Store one blob under a stable key in a small database/object store, for
+  example database `alex-uqyh-background` and store `images`.
+- Return an object URL created from the stored blob and revoke replaced/stale
+  object URLs to avoid memory leaks.
+- Check IndexedDB availability before opening the database and expose a
+  structured error instead of throwing.
+- Treat storage operations as best-effort browser work: catch request/open
+  failures and keep the hook usable after errors.
+- Validate `setImage` input as an image file before writing.
+- Keep cleanup explicit: abort/ignore late async results after unmount and
+  revoke the active object URL on unmount or clear.
+- Test with mocked IndexedDB success/failure paths and mocked
+  `URL.createObjectURL`/`URL.revokeObjectURL`.
