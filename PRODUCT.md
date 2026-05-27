@@ -2,32 +2,36 @@
 
 ## What This Project Is
 
-`alex-uqyh-test-3` is a private Vite + React + TypeScript frontend application.
-It currently contains the initial scaffolded single-page app and development
-tooling foundation.
+`alex-uqyh-test-3` is a private Vite + React + TypeScript single-page clock
+application. It renders a live local clock with a persisted 12-hour/24-hour
+format preference.
 
 ## Current Behavior
 
-The app renders a starter React/Vite screen with:
+- Shows the current local time with hours, minutes, and seconds.
+- Updates the displayed time once per second.
+- Shows the full current date under the time.
+- Lets the user switch between `12h` and `24h` display modes.
+- Persists the selected format in `localStorage` and restores it after reload.
+- Defaults to `24h` when no valid saved preference exists.
 
-- A centered "Get started" section.
-- A counter button backed by React state.
-- Links to Vite and React documentation.
-- Links to Vite community channels.
-
-There is no backend, routing, persistence, authentication, or domain-specific
-product workflow merged yet.
+There is no backend, routing, authentication, or remote data dependency.
 
 ## Architecture
 
 - `src/main.tsx` mounts the React app into `#root`.
-- `src/App.tsx` owns the current starter UI and local counter state.
-- `src/App.css` and `src/index.css` contain the scaffolded component and global
-  styles.
-- `public/` contains static assets served directly by Vite.
-- `src/assets/` contains imported image and SVG assets.
-- `vite.config.ts` enables the React plugin and configures dev/preview servers
-  to listen on `0.0.0.0:8080`.
+- `src/App.tsx` composes the clock page by wiring hooks to presentational
+  components.
+- `src/hooks/useCurrentTime.ts` owns the one-second timer and interval cleanup.
+- `src/hooks/useFormatPref.ts` owns the `12h`/`24h` preference, validation, and
+  `localStorage` persistence.
+- `src/components/ClockDisplay.tsx` renders formatted time and date.
+- `src/components/FormatToggle.tsx` renders the controlled format switch.
+- `src/index.css` contains Tailwind directives plus minimal global base styles.
+- `vite.config.ts` configures Vite React and dev/preview servers on
+  `0.0.0.0:8080`.
+- `playwright.config.ts` runs the end-to-end smoke test against the Vite dev
+  server.
 
 ## Tooling and Conventions
 
@@ -35,17 +39,22 @@ product workflow merged yet.
 - Runtime framework: React 19.
 - Build tool: Vite 8.
 - Language: TypeScript 6 with strict mode enabled.
+- Styling: Tailwind CSS via PostCSS and Autoprefixer.
+- Linting/formatting: ESLint flat config and Prettier.
+- Unit tests: Vitest + React Testing Library under `src/**/*.test.ts(x)`.
+- End-to-end tests: Playwright under `tests/e2e/`.
 - Commands:
   - `npm run dev` starts the Vite development server.
   - `npm run build` runs TypeScript project builds and creates the production
     Vite bundle.
-  - `npm run lint` runs ESLint.
+  - `npm run lint` runs ESLint with zero warnings allowed.
+  - `npm run format` formats the project with Prettier.
+  - `npm test` runs the unit test suite.
+  - `npm run test:e2e` runs the Playwright smoke test.
   - `npm run preview` serves the production build preview.
-- Generated dependencies and build outputs are ignored via `.gitignore`
-  (`node_modules/`, `dist/`, logs, and local environment files).
 
-## Current Scope Boundary
+## Scope Boundary
 
-The repository is only initialized as a frontend scaffold. Future work should
-add product-specific modules, shared types, routing, state management, tests, or
-backend integration only when a concrete issue requires them.
+The app is intentionally small and client-only. Future work should keep state
+local unless a concrete feature requires a broader state model, API, routing, or
+backend integration.
