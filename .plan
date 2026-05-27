@@ -1,45 +1,68 @@
 # Architecture Plan
 
-## Repository Shape
+## Project Shape
 
-This repository will be initialized as a Vite + React + TypeScript frontend application.
-The expected top-level structure after issue #1 is:
+This is a Vite + React + TypeScript frontend app that will become a small live
+clock with a persisted 12-hour/24-hour display preference.
 
-- `src/`: React application source.
-- `src/main.tsx`: React entry point and root render wiring.
-- `src/App.tsx`: Initial application shell.
-- `src/assets/`: Static assets imported by the application.
-- `public/`: Static files served directly by Vite.
-- `index.html`: Vite HTML entry point.
-- `vite.config.ts`: Vite and React plugin configuration.
-- `tsconfig.json`, `tsconfig.app.json`, `tsconfig.node.json`: strict TypeScript configuration.
-- `package.json`: scripts and frontend dependencies.
+Keep the source tree shallow and conventional:
 
-## Shared Types and Modules
+- `src/main.tsx`: React root render and global stylesheet import.
+- `src/App.tsx`: Page composition only; it should wire hooks to components.
+- `src/index.css`: Tailwind entry point and global base styles after issue #3.
+- `src/hooks/useCurrentTime.ts`: Live `Date` state updated once per second.
+- `src/hooks/useFormatPref.ts`: Persisted time-format preference state.
+- `src/components/ClockDisplay.tsx`: Presentational time/date display.
+- `src/components/FormatToggle.tsx`: Presentational 12h/24h toggle control.
+- `src/types/time.ts`: Shared `TimeFormat` type if both hook and components need
+  the same exported type.
+- `src/test/` or colocated `*.test.ts(x)`: Unit tests, chosen consistently when
+  test tooling is added.
+- `tests/e2e/`: Playwright smoke tests.
 
-No domain model exists yet. Shared TypeScript types should be introduced under
-`src/types/` only when a second consumer appears. Component-local types should
-remain colocated with the component that owns them.
+## Shared Types
 
-Future source organization should stay conventional and shallow until the app
-has enough surface area to justify deeper boundaries:
+Use a narrow shared type for the preference:
 
-- `src/components/` for reusable presentational components.
-- `src/hooks/` for reusable React hooks.
-- `src/lib/` for framework-agnostic helpers.
-- `src/styles/` for global styling if CSS grows beyond the scaffold defaults.
+```ts
+export type TimeFormat = '12h' | '24h'
+```
+
+The format hook should expose `[format, setFormat]` or an object with equivalent
+values. Prefer the tuple only if it stays idiomatic and obvious at call sites;
+otherwise use `{ format, setFormat }` for clarity.
 
 ## Issue Dependencies
 
-- Issue #1 has no implementation dependency on other issues.
-- Later work should build on the Vite scaffold, npm scripts, and strict
-  TypeScript settings created in issue #1.
+- #3 Tailwind CSS is the styling foundation for #7, #8, and #9.
+- #4 linting/formatting can be done after the scaffold and before broader edits.
+- #5 `useCurrentTime` is required by #7 and #10.
+- #6 `useFormatPref` is required by #7, #8, and #10.
+- #7 `ClockDisplay` depends on #3, #5, and #6.
+- #8 `FormatToggle` depends on #3 and #6.
+- #9 `App.tsx` composes #7 and #8.
+- #10 hook unit tests depend on #5 and #6.
+- #11 component unit tests depend on #7 and #8.
+- #12 Playwright smoke test depends on the assembled app from #9 and should run
+  after the unit-test tooling is settled.
 
 ## Key Design Decisions
 
-- Use Vite's React TypeScript template as the base to minimize custom setup.
-- Keep strict TypeScript enabled from the start.
-- Prefer standard npm scripts (`dev`, `build`, `preview`, `lint` if scaffolded)
-  so CI and local development can rely on common Node tooling.
-- Avoid adding routing, state management, UI frameworks, or test tooling until
-  a concrete issue requires them.
+- Keep time formatting inside `ClockDisplay` unless another consumer appears.
+  Use `Intl.DateTimeFormat` instead of manual string assembly for locale-aware
+  date and time output.
+- Default to `24h` when `localStorage` is missing, unavailable, or contains an
+  invalid value.
+- Guard browser-only storage access so tests and non-browser execution do not
+  fail unexpectedly.
+- Have `useCurrentTime` clean up its interval on unmount and use fake timers in
+  tests to verify both ticking and cleanup behavior.
+- Make `FormatToggle` controlled: it receives `format` and `setFormat`/`onChange`
+  from the hook owner and does not read storage directly.
+- Keep `App.tsx` thin: call hooks, pass props, and own the responsive page
+  layout.
+- Add Tailwind with minimal custom configuration first. Remove or neutralize the
+  Vite starter CSS when the clock UI is assembled so old scaffold styles do not
+  leak into the final page.
+- Use Vitest + React Testing Library for unit/component tests and Playwright for
+  the end-to-end smoke test.
