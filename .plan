@@ -2,40 +2,51 @@
 
 ## Project Shape
 
-This repository is a Vite + React + TypeScript static frontend. The app source
-is already organized around a small clock UI:
+This repository is a Vite + React + TypeScript static frontend. The current app
+is a client-only clock UI with reusable hooks and colocated tests:
 
 - `src/main.tsx`: React entry point and global stylesheet import.
-- `src/App.tsx`: Top-level composition for the clock interface.
-- `src/components/`: Presentational UI such as `ClockDisplay` and
-  `FormatToggle`, with colocated component tests.
-- `src/hooks/`: Reusable time and preference hooks, with colocated hook tests.
-- `src/index.css`: Tailwind/global styling.
-- `tests/e2e/`: Playwright smoke coverage.
-- `public/` and `src/assets/`: Static and bundled assets.
+- `src/App.tsx`: Top-level page composition.
+- `src/components/`: Presentational UI with colocated component tests.
+- `src/hooks/`: Browser/client hooks with colocated hook tests.
+- `src/index.css`: Tailwind directives and global base styles.
+- `tests/e2e/`: Playwright smoke tests.
 
-Build and verification are driven through npm scripts in `package.json`.
-`npm run build` runs `tsc -b && vite build` and should emit a static production
-directory at `dist/`.
+Issue #25 should fit the existing hook pattern by adding a dedicated
+`src/hooks/useGeolocation.ts` file and colocated tests in
+`src/hooks/useGeolocation.test.ts`.
+
+## Shared Types
+
+Define narrow exported types in the hook file unless another module needs a
+shared type barrel:
+
+- `GeolocationCoordinates`: `{ latitude: number; longitude: number }`
+- `GeolocationErrorCode`: a string union for expected failure states such as
+  unsupported browser, permission denied, unavailable position, and timeout.
+- `GeolocationState`: coordinates, loading flag, and error state.
+
+Keep the public hook return value stable and explicit so future UI work can use
+it for either automatic location or manual city fallback.
 
 ## Issue Dependencies
 
-- Issue #23: Production build verification.
-  - Declared dependency: Issue 2.5.
-  - Practical dependency: the Vite app and its npm scripts must be present and
-    stable before documenting production output.
-  - No other open implementation issues are part of this session.
+- Issue #25: Implement `useGeolocation` hook.
+  - No other open implementation issues are part of this batch.
+  - The hook is independent of the current clock UI and should not require
+    routing, backend state, or database support.
+  - Future UI work can consume the hook to prefill weather/location flows and
+    fall back to manual city input on errors.
 
 ## Key Design Decisions
 
-- Treat Vite's default `dist/` output as the deployable static artifact unless
-  `vite.config.ts` explicitly changes `build.outDir`.
-- Verify production readiness with `npm run build`, not `vite build` directly,
-  so TypeScript project references are checked before bundling.
-- Confirm the build output is static by checking for `dist/index.html` and
-  generated assets under `dist/assets/`.
-- Document a static-serve command in `README.md` that serves `dist/` after a
-  production build. Prefer a simple npm/npx command that does not require a new
-  runtime dependency unless the project already adopts one.
-- Keep README changes concise and operational: build command, output directory,
-  and local static serving command.
+- Use the browser `navigator.geolocation.getCurrentPosition` API from an effect.
+- Guard for non-browser/test environments and browsers without geolocation.
+- Return a structured error state instead of throwing so UI callers can present
+  manual-entry fallback.
+- Handle permission denied and timeout explicitly; map other geolocation errors
+  to a generic unavailable state.
+- Avoid persistent storage. Coordinates are transient client state only.
+- Clean up safely on unmount so late geolocation callbacks do not update state.
+- Test by mocking `navigator.geolocation` in Vitest/jsdom and covering success,
+  permission denied, timeout, unsupported browser, and unmount behavior.
