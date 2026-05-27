@@ -4,7 +4,8 @@
 
 `alex-uqyh-test-3` is a private Vite + React + TypeScript single-page clock
 application. It renders a live local clock with a persisted 12-hour/24-hour
-format preference.
+format preference and includes reusable browser hooks for future client-side
+location flows.
 
 ## Current Behavior
 
@@ -14,6 +15,8 @@ format preference.
 - Lets the user switch between `12h` and `24h` display modes.
 - Persists the selected format in `localStorage` and restores it after reload.
 - Defaults to `24h` when no valid saved preference exists.
+- Provides a `useGeolocation` hook that requests browser latitude/longitude and
+  returns structured loading/error state for manual-location fallback.
 
 There is no backend, routing, authentication, or remote data dependency.
 
@@ -25,6 +28,9 @@ There is no backend, routing, authentication, or remote data dependency.
 - `src/hooks/useCurrentTime.ts` owns the one-second timer and interval cleanup.
 - `src/hooks/useFormatPref.ts` owns the `12h`/`24h` preference, validation, and
   `localStorage` persistence.
+- `src/hooks/useGeolocation.ts` wraps `navigator.geolocation`, maps permission
+  and timeout failures to explicit error codes, and avoids late state updates
+  after unmount.
 - `src/components/ClockDisplay.tsx` renders formatted time and date.
 - `src/components/FormatToggle.tsx` renders the controlled format switch.
 - `src/index.css` contains Tailwind directives plus minimal global base styles.
