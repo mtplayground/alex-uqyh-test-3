@@ -2,67 +2,40 @@
 
 ## Project Shape
 
-This is a Vite + React + TypeScript frontend app that will become a small live
-clock with a persisted 12-hour/24-hour display preference.
+This repository is a Vite + React + TypeScript static frontend. The app source
+is already organized around a small clock UI:
 
-Keep the source tree shallow and conventional:
+- `src/main.tsx`: React entry point and global stylesheet import.
+- `src/App.tsx`: Top-level composition for the clock interface.
+- `src/components/`: Presentational UI such as `ClockDisplay` and
+  `FormatToggle`, with colocated component tests.
+- `src/hooks/`: Reusable time and preference hooks, with colocated hook tests.
+- `src/index.css`: Tailwind/global styling.
+- `tests/e2e/`: Playwright smoke coverage.
+- `public/` and `src/assets/`: Static and bundled assets.
 
-- `src/main.tsx`: React root render and global stylesheet import.
-- `src/App.tsx`: Page composition only; it should wire hooks to components.
-- `src/index.css`: Tailwind entry point and global base styles after issue #3.
-- `src/hooks/useCurrentTime.ts`: Live `Date` state updated once per second.
-- `src/hooks/useFormatPref.ts`: Persisted time-format preference state.
-- `src/components/ClockDisplay.tsx`: Presentational time/date display.
-- `src/components/FormatToggle.tsx`: Presentational 12h/24h toggle control.
-- `src/types/time.ts`: Shared `TimeFormat` type if both hook and components need
-  the same exported type.
-- `src/test/` or colocated `*.test.ts(x)`: Unit tests, chosen consistently when
-  test tooling is added.
-- `tests/e2e/`: Playwright smoke tests.
-
-## Shared Types
-
-Use a narrow shared type for the preference:
-
-```ts
-export type TimeFormat = '12h' | '24h'
-```
-
-The format hook should expose `[format, setFormat]` or an object with equivalent
-values. Prefer the tuple only if it stays idiomatic and obvious at call sites;
-otherwise use `{ format, setFormat }` for clarity.
+Build and verification are driven through npm scripts in `package.json`.
+`npm run build` runs `tsc -b && vite build` and should emit a static production
+directory at `dist/`.
 
 ## Issue Dependencies
 
-- #3 Tailwind CSS is the styling foundation for #7, #8, and #9.
-- #4 linting/formatting can be done after the scaffold and before broader edits.
-- #5 `useCurrentTime` is required by #7 and #10.
-- #6 `useFormatPref` is required by #7, #8, and #10.
-- #7 `ClockDisplay` depends on #3, #5, and #6.
-- #8 `FormatToggle` depends on #3 and #6.
-- #9 `App.tsx` composes #7 and #8.
-- #10 hook unit tests depend on #5 and #6.
-- #11 component unit tests depend on #7 and #8.
-- #12 Playwright smoke test depends on the assembled app from #9 and should run
-  after the unit-test tooling is settled.
+- Issue #23: Production build verification.
+  - Declared dependency: Issue 2.5.
+  - Practical dependency: the Vite app and its npm scripts must be present and
+    stable before documenting production output.
+  - No other open implementation issues are part of this session.
 
 ## Key Design Decisions
 
-- Keep time formatting inside `ClockDisplay` unless another consumer appears.
-  Use `Intl.DateTimeFormat` instead of manual string assembly for locale-aware
-  date and time output.
-- Default to `24h` when `localStorage` is missing, unavailable, or contains an
-  invalid value.
-- Guard browser-only storage access so tests and non-browser execution do not
-  fail unexpectedly.
-- Have `useCurrentTime` clean up its interval on unmount and use fake timers in
-  tests to verify both ticking and cleanup behavior.
-- Make `FormatToggle` controlled: it receives `format` and `setFormat`/`onChange`
-  from the hook owner and does not read storage directly.
-- Keep `App.tsx` thin: call hooks, pass props, and own the responsive page
-  layout.
-- Add Tailwind with minimal custom configuration first. Remove or neutralize the
-  Vite starter CSS when the clock UI is assembled so old scaffold styles do not
-  leak into the final page.
-- Use Vitest + React Testing Library for unit/component tests and Playwright for
-  the end-to-end smoke test.
+- Treat Vite's default `dist/` output as the deployable static artifact unless
+  `vite.config.ts` explicitly changes `build.outDir`.
+- Verify production readiness with `npm run build`, not `vite build` directly,
+  so TypeScript project references are checked before bundling.
+- Confirm the build output is static by checking for `dist/index.html` and
+  generated assets under `dist/assets/`.
+- Document a static-serve command in `README.md` that serves `dist/` after a
+  production build. Prefer a simple npm/npx command that does not require a new
+  runtime dependency unless the project already adopts one.
+- Keep README changes concise and operational: build command, output directory,
+  and local static serving command.
