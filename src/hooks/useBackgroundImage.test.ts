@@ -211,6 +211,32 @@ describe('useBackgroundImage', () => {
     expect(result.current.error).toBeNull()
   })
 
+  it('persists a saved image for the next hook instance', async () => {
+    const imageFile = new File(['new image'], 'background.png', {
+      type: 'image/png',
+    })
+    const firstHook = renderHook(() => useBackgroundImage())
+
+    await waitFor(() => {
+      expect(firstHook.result.current.isLoading).toBe(false)
+    })
+
+    await act(async () => {
+      await firstHook.result.current.setImage(imageFile)
+    })
+    firstHook.unmount()
+
+    const secondHook = renderHook(() => useBackgroundImage())
+
+    await waitFor(() => {
+      expect(secondHook.result.current.backgroundUrl).toBe('blob:background-2')
+    })
+
+    expect(records.get(BACKGROUND_IMAGE_KEY)).toBe(imageFile)
+    expect(createObjectUrlMock).toHaveBeenLastCalledWith(imageFile)
+    expect(secondHook.result.current.error).toBeNull()
+  })
+
   it('rejects non-image files without writing them to IndexedDB', async () => {
     const textFile = new File(['notes'], 'notes.txt', { type: 'text/plain' })
     const { result } = renderHook(() => useBackgroundImage())

@@ -98,6 +98,7 @@ export function BackgroundUpload({
         id={inputId}
         type="file"
         accept="image/*"
+        aria-label="Choose background image"
         className="sr-only"
         onChange={(event) => {
           void handleFileChange(event)
