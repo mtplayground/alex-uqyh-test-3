@@ -2,6 +2,25 @@
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
+## Production Build
+
+Create the production bundle with:
+
+```sh
+npm run build
+```
+
+The build runs TypeScript project checks and Vite's production bundler. The
+deployable static output is written to `dist/`, including `dist/index.html` and
+hashed assets under `dist/assets/`.
+
+To serve the built static directory locally on the configured preview host and
+port:
+
+```sh
+npm run preview -- --host 0.0.0.0 --port 8080
+```
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
