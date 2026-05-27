@@ -23,6 +23,9 @@ format preference and a client-side current-weather panel.
   unavailable, or the user wants to override location.
 - Persists the selected city and caches the last matching weather response in
   `localStorage`.
+- Provides a `useBackgroundImage` hook that stores a selected background image
+  blob in IndexedDB, exposes an object URL for rendering, and supports clearing
+  the saved image with graceful unavailable/error states.
 
 There is no backend, routing, authentication, database, or API key. Weather and
 city search use public Open-Meteo browser APIs.
@@ -40,6 +43,8 @@ city search use public Open-Meteo browser APIs.
   after unmount.
 - `src/hooks/useWeather.ts` fetches Open-Meteo current conditions, maps weather
   codes to labels, and caches the last matching result.
+- `src/hooks/useBackgroundImage.ts` persists one user-selected background image
+  blob in IndexedDB and manages object URL cleanup.
 - `src/components/ClockDisplay.tsx` renders formatted time and date.
 - `src/components/FormatToggle.tsx` renders the controlled format switch.
 - `src/components/WeatherCard.tsx` renders weather data, loading, and fallback
@@ -65,7 +70,8 @@ city search use public Open-Meteo browser APIs.
 - Styling: Tailwind CSS via PostCSS and Autoprefixer.
 - Linting/formatting: ESLint flat config and Prettier.
 - Unit tests: Vitest + React Testing Library under `src/**/*.test.ts(x)`.
-  Weather tests mock `fetch`, `navigator.geolocation`, and `localStorage`.
+  Weather tests mock `fetch`, `navigator.geolocation`, and `localStorage`;
+  background-image tests mock IndexedDB and object URL behavior.
 - End-to-end tests: Playwright under `tests/e2e/`.
 - Commands:
   - `npm run dev` starts the Vite development server.
