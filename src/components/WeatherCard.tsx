@@ -1,4 +1,5 @@
-import { CitySearch, type CitySearchResult } from './CitySearch'
+import { CitySearch } from './CitySearch'
+import type { CitySearchResult } from './citySearchStorage'
 import type { GeolocationState } from '../hooks/useGeolocation'
 import type { WeatherData, WeatherState } from '../hooks/useWeather'
 
@@ -121,9 +122,16 @@ export function WeatherCard({
   className,
 }: WeatherCardProps) {
   const fallbackMessage = getFallbackMessage(weather, geolocation)
-  const showSkeleton = weather.isLoading && weather.data === null
+  const isResolvingLocation =
+    geolocation?.isLoading === true &&
+    weather.data === null &&
+    weather.error === null
+  const showSkeleton =
+    (weather.isLoading || isResolvingLocation) && weather.data === null
   const showFallback =
-    !weather.isLoading && (fallbackMessage !== null || weather.data === null)
+    !weather.isLoading &&
+    !isResolvingLocation &&
+    (fallbackMessage !== null || weather.data === null)
   const rootClassName = className
     ? `w-full max-w-md ${className}`
     : 'w-full max-w-md'
