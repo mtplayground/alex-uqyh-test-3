@@ -2,54 +2,62 @@
 
 ## Project Shape
 
-This repository is a Vite + React + TypeScript static frontend. The app already
-uses colocated hooks/tests and browser-only client state. Issue #37 should fit
-that structure without adding backend services:
+This repository is a Vite + React + TypeScript static frontend. The existing
+clock/weather app uses browser-only state, Tailwind styling, colocated
+components, colocated hooks, and Vitest/React Testing Library tests. The
+background image work should extend that structure without adding backend
+services:
 
-- `src/main.tsx`: React entry point and global stylesheet import.
-- `src/App.tsx`: Current clock/weather page composition.
-- `src/components/`: Presentational UI and colocated component tests.
-- `src/hooks/`: Reusable browser hooks and colocated hook tests.
-- `src/hooks/useBackgroundImage.ts`: New hook for persisted background image
-  blob state.
-- `src/hooks/useBackgroundImage.test.ts`: Focused jsdom/Vitest tests with
-  mocked IndexedDB and object URL behavior.
+- `src/App.tsx`: Compose the page layout and apply the selected background image
+  to the root app container.
+- `src/components/BackgroundUpload.tsx`: New minimal settings control for image
+  selection and reset.
+- `src/components/BackgroundUpload.test.tsx`: Component tests for file
+  selection, reset, disabled/loading states, and accessible controls.
+- `src/hooks/useBackgroundImage.ts`: Existing IndexedDB-backed hook for storing,
+  clearing, and exposing the current background image object URL.
+- `src/hooks/useBackgroundImage.test.ts`: Existing hook coverage, expanded only
+  if issue #41 exposes additional cases.
+- `src/index.css`: Keep global styles minimal; prefer Tailwind classes in
+  components and layout.
 
-## Shared Types
+## Shared Types and Contracts
 
-Keep types local to the hook unless another consumer needs them:
-
-- `BackgroundImageState`: `backgroundUrl`, `isLoading`, and structured `error`.
-- `BackgroundImageErrorCode`: expected states such as unsupported IndexedDB,
-  read failure, write failure, clear failure, and invalid file.
-- `UseBackgroundImageResult`: state plus `setImage(file: File)` and
-  `clearImage()` functions.
-
-The persisted value is a single image `Blob` in IndexedDB. No network database
-or server persistence is needed.
+- `useBackgroundImage` remains the single source of truth for persisted
+  background image state: `backgroundUrl`, `isLoading`, `error`,
+  `setImage(file)`, and `clearImage()`.
+- `BackgroundUpload` should receive the hook state/actions as props rather than
+  own persistence itself. This keeps file-picker UI testable and avoids multiple
+  hook instances competing over object URLs.
+- The app layout should treat `backgroundUrl: null` as the default visual state.
+  A non-null URL becomes `background-image` on the root visual container.
 
 ## Issue Dependencies
 
-- #37 `useBackgroundImage` hook:
-  - Independent of the existing clock/weather UI.
-  - May later be consumed by UI that lets users customize the app background.
-  - Should not modify `App.tsx` or add visual controls unless a later issue
-    asks for that integration.
+- #39 `BackgroundUpload` component:
+  - Depends on the existing `useBackgroundImage` hook contract.
+  - Should add UI only; it should not wire global page background behavior yet.
+- #40 apply background image to `App.tsx`:
+  - Depends on `BackgroundUpload`.
+  - Wires one `useBackgroundImage` instance into both the upload control and the
+    root container background.
+  - Adds an overlay layer to preserve clock/weather readability.
+- #41 background image tests:
+  - Depends on all background hook/component/layout work.
+  - Adds or extends Vitest/RTL coverage for hook behavior and upload UI.
 
 ## Key Design Decisions
 
-- Use IndexedDB directly through the browser `indexedDB` API; do not add a
-  dependency for one object store.
-- Store one blob under a stable key in a small database/object store, for
-  example database `alex-uqyh-background` and store `images`.
-- Return an object URL created from the stored blob and revoke replaced/stale
-  object URLs to avoid memory leaks.
-- Check IndexedDB availability before opening the database and expose a
-  structured error instead of throwing.
-- Treat storage operations as best-effort browser work: catch request/open
-  failures and keep the hook usable after errors.
-- Validate `setImage` input as an image file before writing.
-- Keep cleanup explicit: abort/ignore late async results after unmount and
-  revoke the active object URL on unmount or clear.
-- Test with mocked IndexedDB success/failure paths and mocked
-  `URL.createObjectURL`/`URL.revokeObjectURL`.
+- Keep the feature client-only. IndexedDB is browser persistence; no network
+  database, auth, API route, or server state is needed.
+- Use a visually quiet upload/reset control so it does not compete with the
+  clock or weather card.
+- Restrict the file input with `accept="image/*"` and rely on the hook to
+  validate selected files before persistence.
+- Keep background styling responsive and readable: cover/center the image, add a
+  semi-transparent overlay, and preserve existing light/dark mode contrast.
+- Use accessible controls with stable labels so tests and keyboard users can
+  operate upload and reset actions.
+- Continue using strict TypeScript, Tailwind, ESLint, Prettier, and
+  Vitest/React Testing Library. Mock browser APIs such as IndexedDB, file input,
+  and object URLs in tests.
